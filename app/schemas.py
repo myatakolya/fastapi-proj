@@ -15,7 +15,9 @@ class OperationRequest(BaseModel):
     @field_validator('amount')
     def amount_must_be_positive(cls, value: Decimal) -> Decimal:
         if value <= 0:
-            raise ValueError('Cумма должна быть позитивной')
+            raise ValueError('Cумма должна быть положительной')
+        if value > 999_999_999:
+            raise ValueError('Слишком большая сумма')
         return value
 
     @field_validator('wallet_name')

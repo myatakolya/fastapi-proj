@@ -46,7 +46,7 @@ def add_expense(db: Session, current_user: User, operation: OperationRequest) ->
         )
     
     wallet = wallets_repository.add_expense(db, current_user.id, operation.wallet_name, operation.amount)
-    operation = operations_repository.create_operation(db=db, wallet_id=wallet.id, type=OperationType.EXPANSE, amount=operation.amount, currency=wallet.currency, category=operation.description)
+    operation = operations_repository.create_operation(db=db, wallet_id=wallet.id, type=OperationType.EXPENSE, amount=-operation.amount, currency=wallet.currency, category=operation.description)
     
     db.commit()
     
@@ -101,9 +101,28 @@ async def transfer_between_wallets(db: Session, user_id: int, from_wallet_id: in
     
     from_wallet.balance = round(from_wallet.balance - amount, 2)
     to_wallet.balance = round(to_wallet.balance + target_amount, 2)
-    operaton = operations_repository.create_operation(db=db, wallet_id=from_wallet_id, type=OperationType.TRANSFER, amount=target_amount, currency=to_wallet.currency, category='перевод')
-    db.add(from_wallet)
-    db.add(to_wallet)
-    db.add(operaton)
+    
+    operation_from = operations_repository.create_operation(
+        db=db,
+        wallet_id=from_wallet_id,
+        type=OperationType.TRANSFER,
+        amount=-amount,
+        currency=from_wallet.currency,
+        category='Перевод (списание)'
+    )
+    db.add(operation_from)
+    
+    operation_to = operations_repository.create_operation(
+        db=db,
+        wallet_id=to_wallet_id,
+        type=OperationType.TRANSFER,
+        amount=target_amount,
+        currency=to_wallet.currency,
+        category='Перевод (зачисление)'
+    )
+    db.add(operation_to)
+    
     db.commit()
-    return OperationResponse.model_validate(operaton)
+    
+    return OperationResponse.model_validate(operation_to)
+

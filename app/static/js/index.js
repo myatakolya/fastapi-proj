@@ -1,306 +1,878 @@
 (function() {
-    // ========== ДЕМО-ДАННЫЕ ОПЕРАЦИЙ ==========
-    const demoOperations = {
-        1: [
-            { date: '2026-07-20', category: 'Пополнение', amount: 500, desc: 'Зарплата' },
-            { date: '2026-07-18', category: 'Покупка', amount: -150, desc: 'Продукты' },
-            { date: '2026-07-15', category: 'Перевод', amount: -200, desc: 'Другу' },
-        ],
-        2: [
-            { date: '2026-07-21', category: 'Пополнение', amount: 1000, desc: 'Бонус' },
-            { date: '2026-07-19', category: 'Покупка', amount: -50, desc: 'Кофе' },
-        ],
-        3: [
-            { date: '2026-07-22', category: 'Снятие', amount: -300, desc: 'Наличные' },
-        ],
-        4: [
-            { date: '2026-07-20', category: 'Пополнение', amount: 2000, desc: 'Дивиденды' },
-            { date: '2026-07-17', category: 'Покупка', amount: -500, desc: 'Акции' },
-        ],
-        5: [
-            { date: '2026-07-19', category: 'Пополнение', amount: 700, desc: 'Подарок' },
-        ],
-        6: [],
-        7: [
-            { date: '2026-07-21', category: 'Покупка', amount: -1200, desc: 'Билеты' },
-            { date: '2026-07-16', category: 'Пополнение', amount: 1500, desc: 'Кэшбэк' },
-        ],
-        8: [
-            { date: '2026-07-18', category: 'Пополнение', amount: 300, desc: 'Стипендия' },
-        ],
-        9: [
-            { date: '2026-07-20', category: 'Покупка', amount: -80, desc: 'Аптека' },
-        ],
-        10: [
-            { date: '2026-07-22', category: 'Покупка', amount: -2500, desc: 'Ремонт' },
-        ],
-        11: [
-            { date: '2026-07-21', category: 'Пополнение', amount: 1000, desc: 'Аренда' },
-        ]
-    };
+    // ===== КОНФИГ =====
+    const API_BASE = '/api/v1';
+    const TOKEN_KEY = 'fastapi_login';
 
-    // ========== ПАГИНАЦИЯ ==========
-    const cards = document.querySelectorAll('#walletCards .wallet-card');
-    const prevBtn = document.getElementById('prevPageBtn');
-    const nextBtn = document.getElementById('nextPageBtn');
-    const pageInfo = document.getElementById('pageInfo');
-    const itemsPerPage = 3;
-    let currentPage = 1;
-    const totalPages = Math.ceil(cards.length / itemsPerPage);
-
-    function showPage(page) {
-        cards.forEach(c => c.style.display = 'none');
-        const start = (page - 1) * itemsPerPage;
-        const end = Math.min(start + itemsPerPage, cards.length);
-        for (let i = start; i < end; i++) {
-            cards[i].style.display = 'flex';
-        }
-        pageInfo.textContent = `Страница ${page} из ${totalPages}`;
-        prevBtn.disabled = (page === 1);
-        nextBtn.disabled = (page === totalPages);
-        prevBtn.style.opacity = prevBtn.disabled ? '0.4' : '1';
-        nextBtn.style.opacity = nextBtn.disabled ? '0.4' : '1';
-        prevBtn.style.cursor = prevBtn.disabled ? 'not-allowed' : 'pointer';
-        nextBtn.style.cursor = nextBtn.disabled ? 'not-allowed' : 'pointer';
+    // ===== ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ФОРМАТИРОВАНИЯ ЧИСЕЛ =====
+    function formatNumber(value) {
+        let num = parseFloat(value);
+        if (isNaN(num)) return '0.00';
+        return num.toFixed(2);
     }
 
-    prevBtn.addEventListener('click', function() {
-        if (currentPage > 1) { currentPage--; showPage(currentPage); }
-    });
-    nextBtn.addEventListener('click', function() {
-        if (currentPage < totalPages) { currentPage++; showPage(currentPage); }
-    });
-    if (cards.length > 0) showPage(1);
-    else { pageInfo.textContent = 'Страница 0 из 0'; prevBtn.disabled = true; nextBtn.disabled = true; }
+    // ===== ЭЛЕМЕНТЫ АВТОРИЗАЦИИ =====
+    const authModal = document.getElementById('authModal');
+    const authModalClose = document.getElementById('authModalClose');
+    const authModalTitle = document.getElementById('authModalTitle');
+    const authModalDesc = document.getElementById('authModalDesc');
+    const authForm = document.getElementById('authForm');
+    const authLogin = document.getElementById('authLogin');
+    const authMessage = document.getElementById('authMessage');
+    const authBtn = document.getElementById('authBtn');
 
-    // ========== ОБЩИЙ БАЛАНС (МОДАЛКА) ==========
-    const modalTotal = document.getElementById('totalModal');
-    const modalCloseTotal = document.querySelector('#totalModal .modal-close');
-    const totalBalanceBtn = document.getElementById('totalBalanceBtn');
-    const modalTotalDisplay = document.getElementById('modalTotalDisplay');
+    const authStatus = document.getElementById('authStatus');
+    const authLoginBtn = document.getElementById('authLoginBtn');
+    const authRegisterBtn = document.getElementById('authRegisterBtn');
+    const authLogoutBtn = document.getElementById('authLogoutBtn');
 
-    function calcTotal() {
-        let total = 0;
-        document.querySelectorAll('.wallet-balance').forEach(el => {
-            const text = el.textContent.trim();
-            const num = parseFloat(text.replace(/[^0-9.,]/g, '').replace(',', '.'));
-            if (!isNaN(num)) total += num;
+    const actionButtons = document.getElementById('actionButtons');
+    const transferBtn = document.getElementById('transferBtn');
+
+    // ===== TOAST =====
+    const toast = document.getElementById('toast');
+    let toastTimeout = null;
+
+    function showToast(message, duration = 3000) {
+        if (!toast) {
+            alert(message);
+            return;
+        }
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toast.textContent = message;
+        toast.classList.add('show');
+        toastTimeout = setTimeout(() => {
+            toast.classList.remove('show');
+        }, duration);
+    }
+
+    let currentAuthMode = 'login';
+    let appInitialized = false;
+
+    // ===== БАЗОВЫЙ ЗАПРОС =====
+    async function rawRequest(endpoint, options = {}) {
+        const url = `${API_BASE}${endpoint}`;
+        const response = await fetch(url, {
+            headers: { 'Content-Type': 'application/json' },
+            ...options,
         });
-        return total;
-    }
-    totalBalanceBtn.addEventListener('click', function() {
-        modalTotalDisplay.textContent = calcTotal().toFixed(2) + ' ₽';
-        modalTotal.style.display = 'block';
-    });
-    modalCloseTotal.addEventListener('click', function() { modalTotal.style.display = 'none'; });
-    window.addEventListener('click', function(e) { if (e.target === modalTotal) modalTotal.style.display = 'none'; });
-
-    // ========== ПОЛНОЭКРАННЫЙ ОВЕРЛЕЙ ДЕТАЛЕЙ ==========
-    const overlay = document.getElementById('walletDetailOverlay');
-    const closeOverlayBtn = document.getElementById('closeDetailOverlay');
-    const detailName = document.getElementById('detailWalletName');
-    const detailId = document.getElementById('detailWalletId');
-    const detailBalance = document.getElementById('detailWalletBalance');
-    const operationsBody = document.getElementById('operationsBody');
-    const noOpsMsg = document.getElementById('noOperationsMessage');
-    const filterCategory = document.getElementById('filterCategory');
-    const filterDateFrom = document.getElementById('filterDateFrom');
-    const filterDateTo = document.getElementById('filterDateTo');
-    const filterBtn = document.getElementById('filterBtn');
-    const resetFilterBtn = document.getElementById('resetFilterBtn');
-
-    // Элементы формы добавления
-    const addOpForm = document.getElementById('addOperationForm');
-    const opType = document.getElementById('opType');
-    const opAmount = document.getElementById('opAmount');
-    const opCategory = document.getElementById('opCategory');
-    const opDate = document.getElementById('opDate');
-    const opDesc = document.getElementById('opDesc');
-    const addOpMsg = document.getElementById('addOpMessage');
-
-    let currentWalletId = null;
-
-    // Функция пересчёта баланса кошелька
-    function calculateBalance(walletId) {
-        const ops = demoOperations[walletId] || [];
-        let balance = 0;
-        ops.forEach(op => { balance += op.amount; });
-        return balance;
+        if (!response.ok) {
+            let errorText = await response.text();
+            try {
+                const json = JSON.parse(errorText);
+                errorText = json.detail || errorText;
+            } catch (e) {}
+            throw new Error(errorText || `Ошибка ${response.status}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        }
+        return null;
     }
 
-    // Функция отображения операций
-    function renderOperations(walletId) {
-        const ops = demoOperations[walletId] || [];
-        const category = filterCategory.value;
-        const dateFrom = filterDateFrom.value;
-        const dateTo = filterDateTo.value;
+    // ===== АУТЕНТИФИКАЦИЯ =====
+    async function authenticate(login) {
+        try {
+            await rawRequest('/users/me', {
+                headers: { 'Authorization': `Bearer ${login}` }
+            });
+            return true;
+        } catch (err) {
+            throw new Error('Неверный логин или пользователь не существует');
+        }
+    }
 
-        let filtered = ops;
-        if (category !== 'all') {
-            filtered = filtered.filter(op => op.category === category);
+    async function register(login) {
+        try {
+            await rawRequest('/users', {
+                method: 'POST',
+                body: JSON.stringify({ login: login })
+            });
+            return true;
+        } catch (err) {
+            throw new Error('Не удалось зарегистрироваться: ' + err.message);
         }
-        if (dateFrom) {
-            filtered = filtered.filter(op => op.date >= dateFrom);
-        }
-        if (dateTo) {
-            filtered = filtered.filter(op => op.date <= dateTo);
-        }
-        filtered.sort((a, b) => b.date.localeCompare(a.date));
+    }
 
-        if (filtered.length === 0) {
-            operationsBody.innerHTML = '';
-            noOpsMsg.style.display = 'block';
+    // ===== ПРОВЕРКА АВТОРИЗАЦИИ =====
+    function isAuthorized() {
+        return !!localStorage.getItem(TOKEN_KEY);
+    }
+
+    // ===== ОБНОВЛЕНИЕ UI =====
+    function updateUI(isLoggedIn, login = '') {
+        if (isLoggedIn) {
+            authStatus.textContent = login;
+            authLoginBtn.style.display = 'none';
+            authRegisterBtn.style.display = 'none';
+            authLogoutBtn.style.display = 'inline-block';
+            if (actionButtons) actionButtons.classList.remove('disabled');
+            if (transferBtn) transferBtn.classList.remove('disabled');
         } else {
-            noOpsMsg.style.display = 'none';
-            operationsBody.innerHTML = filtered.map(op => `
-                <tr>
-                    <td>${op.date}</td>
-                    <td>${op.category}</td>
-                    <td style="color: ${op.amount >= 0 ? '#0b6e4f' : '#b91c1c'}">${op.amount >= 0 ? '+' : ''}${op.amount.toFixed(2)}</td>
-                    <td>${op.desc}</td>
-                </tr>
-            `).join('');
+            authStatus.textContent = 'Гость';
+            authLoginBtn.style.display = 'inline-block';
+            authRegisterBtn.style.display = 'inline-block';
+            authLogoutBtn.style.display = 'none';
+            if (actionButtons) actionButtons.classList.add('disabled');
+            if (transferBtn) transferBtn.classList.add('disabled');
+        }
+    }
+
+    // ===== МОДАЛКА АВТОРИЗАЦИИ =====
+    function openAuthModal(mode) {
+        currentAuthMode = mode;
+        if (mode === 'login') {
+            authModalTitle.textContent = '🔐 Вход';
+            authModalDesc.textContent = 'Введите ваш логин для входа.';
+            authBtn.textContent = 'Войти';
+        } else {
+            authModalTitle.textContent = '📝 Регистрация';
+            authModalDesc.textContent = 'Создайте нового пользователя.';
+            authBtn.textContent = 'Зарегистрироваться';
+        }
+        authLogin.value = '';
+        authMessage.textContent = '';
+        authMessage.className = 'message';
+        authModal.style.display = 'block';
+    }
+
+    function closeAuthModal() {
+        authModal.style.display = 'none';
+    }
+
+    // Обработчики кнопок входа/регистрации
+    authLoginBtn.addEventListener('click', () => openAuthModal('login'));
+    authRegisterBtn.addEventListener('click', () => openAuthModal('register'));
+    authModalClose.addEventListener('click', closeAuthModal);
+    window.addEventListener('click', (e) => {
+        if (e.target === authModal) closeAuthModal();
+    });
+
+    // Обработка формы авторизации
+    authForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const login = authLogin.value.trim();
+        if (!login) {
+            authMessage.textContent = 'Введите логин';
+            authMessage.className = 'message error';
+            return;
+        }
+        authBtn.disabled = true;
+        authBtn.textContent = 'Загрузка...';
+        try {
+            if (currentAuthMode === 'login') {
+                await authenticate(login);
+            } else {
+                await register(login);
+                await authenticate(login);
+            }
+            localStorage.setItem(TOKEN_KEY, login);
+            authMessage.textContent = '✅ Успешно!';
+            authMessage.className = 'message success';
+            updateUI(true, login);
+            closeAuthModal();
+            window.location.reload();
+        } catch (err) {
+            authMessage.textContent = '❌ ' + err.message;
+            authMessage.className = 'message error';
+        } finally {
+            authBtn.disabled = false;
+            authBtn.textContent = currentAuthMode === 'login' ? 'Войти' : 'Зарегистрироваться';
+        }
+    });
+
+    // ===== ВЫХОД =====
+    authLogoutBtn.addEventListener('click', function() {
+        localStorage.removeItem(TOKEN_KEY);
+        updateUI(false);
+        window.location.reload();
+    });
+
+    // ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ =====
+    let currentPage = 1;
+    const itemsPerPage = 3;
+    let allWallets = [];
+    let filteredWallets = [];
+
+    function initApp() {
+        if (appInitialized) return;
+        appInitialized = true;
+
+        async function apiRequest(endpoint, options = {}) {
+            const login = localStorage.getItem(TOKEN_KEY);
+            if (!login) {
+                throw new Error('Требуется авторизация');
+            }
+            const url = `${API_BASE}${endpoint}`;
+            const response = await fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${login}`,
+                    ...options.headers,
+                },
+                ...options,
+            });
+            if (!response.ok) {
+                let errorText = await response.text();
+                try {
+                    const json = JSON.parse(errorText);
+                    errorText = json.detail || errorText;
+                } catch (e) {}
+                if (response.status === 401) {
+                    localStorage.removeItem(TOKEN_KEY);
+                    updateUI(false);
+                    appInitialized = false;
+                    showToast('⚠️ Сессия истекла, войдите заново');
+                    window.location.reload();
+                    throw new Error('Сессия истекла');
+                }
+                throw new Error(errorText || `Ошибка ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            }
+            return null;
         }
 
-        const newBalance = calculateBalance(walletId);
-        detailBalance.textContent = newBalance.toFixed(2) + ' ₽';
-        const card = document.querySelector(`.wallet-card[data-id="${walletId}"]`);
-        if (card) {
-            const balanceEl = card.querySelector('.wallet-balance');
-            if (balanceEl) {
-                balanceEl.textContent = newBalance.toFixed(2) + ' ₽';
-                card.dataset.balance = newBalance.toFixed(2);
+        // ===== ЭЛЕМЕНТЫ DOM =====
+        const cardsContainer = document.getElementById('walletCards');
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        const pageInfo = document.getElementById('pageInfo');
+        const createForm = document.getElementById('createForm');
+        const createMsg = document.getElementById('createMessage');
+        const totalBalanceBtn = document.getElementById('totalBalanceBtn');
+        const modalTotal = document.getElementById('totalModal');
+        const modalCloseTotal = document.querySelector('#totalModal .modal-close');
+        const modalTotalDisplay = document.getElementById('modalTotalDisplay');
+
+        const overlay = document.getElementById('walletDetailOverlay');
+        const closeOverlayBtn = document.getElementById('closeDetailOverlay');
+        const detailName = document.getElementById('detailWalletName');
+        const detailId = document.getElementById('detailWalletId');
+        const detailBalance = document.getElementById('detailWalletBalance');
+        const operationsBody = document.getElementById('operationsBody');
+        const noOpsMsg = document.getElementById('noOperationsMessage');
+        const filterCategory = document.getElementById('filterCategory');
+        const filterDateFrom = document.getElementById('filterDateFrom');
+        const filterDateTo = document.getElementById('filterDateTo');
+        const filterBtn = document.getElementById('filterBtn');
+        const resetFilterBtn = document.getElementById('resetFilterBtn');
+
+        const addOpForm = document.getElementById('addOperationForm');
+        const opType = document.getElementById('opType');
+        const opAmount = document.getElementById('opAmount');
+        const opDesc = document.getElementById('opDesc');
+        const addOpMsg = document.getElementById('addOpMessage');
+
+        // ===== ГЛОБАЛЬНЫЕ ОПЕРАЦИИ (вкладка "Операции") =====
+        const globalFilterCategory = document.getElementById('globalFilterCategory');
+        const globalFilterDateFrom = document.getElementById('globalFilterDateFrom');
+        const globalFilterDateTo = document.getElementById('globalFilterDateTo');
+        const globalFilterBtn = document.getElementById('globalFilterBtn');
+        const globalResetFilterBtn = document.getElementById('globalResetFilterBtn');
+        const globalOperationsBody = document.getElementById('globalOperationsBody');
+        const globalNoOpsMsg = document.getElementById('globalNoOperationsMessage');
+
+        // ===== ОБРАБОТКА КЛИКА ПО LABEL "Создать новый" =====
+        const createToggleLabel = document.querySelector('.create-toggle-btn');
+        if (createToggleLabel) {
+            createToggleLabel.removeEventListener('click', createToggleLabel._clickHandler);
+            createToggleLabel._clickHandler = function(e) {
+                if (!isAuthorized()) {
+                    e.preventDefault();
+                    showToast('⚠️ Для создания кошелька необходимо авторизоваться.');
+                    return;
+                }
+            };
+            createToggleLabel.addEventListener('click', createToggleLabel._clickHandler);
+        }
+
+        // ===== ПАГИНАЦИЯ (кошельки) =====
+        function renderWalletCards(wallets) {
+            if (!cardsContainer) return;
+            cardsContainer.innerHTML = '';
+            const paginationEl = document.getElementById('pagination');
+            if (!wallets || wallets.length === 0) {
+                cardsContainer.innerHTML = '<p class="empty">Кошельков пока нет</p>';
+                if (paginationEl) paginationEl.style.display = 'none';
+                return;
+            }
+            if (paginationEl) paginationEl.style.display = 'flex';
+            wallets.forEach(w => {
+                const card = document.createElement('div');
+                card.className = 'wallet-card';
+                card.dataset.id = w.id;
+                card.dataset.name = w.name;
+                card.dataset.balance = w.balance;
+                card.style.cursor = 'pointer';
+                const formattedBalance = formatNumber(w.balance);
+                card.innerHTML = `
+                    <div class="wallet-name">${w.name}</div>
+                    <div class="wallet-id">ID: ${w.id}</div>
+                    <div class="wallet-balance">${formattedBalance} ${w.currency.toUpperCase()}</div>
+                `;
+                card.removeEventListener('click', card._clickHandler);
+                card._clickHandler = function(e) {
+                    if (!isAuthorized()) {
+                        showToast('⚠️ Для просмотра деталей необходимо авторизоваться.');
+                        return;
+                    }
+                    e.stopPropagation();
+                    openDetail(this);
+                };
+                card.addEventListener('click', card._clickHandler);
+                cardsContainer.appendChild(card);
+            });
+            filteredWallets = wallets;
+            const totalPages = Math.ceil(wallets.length / itemsPerPage);
+            currentPage = 1;
+            showPage(1, wallets);
+        }
+
+        function showPage(page, wallets) {
+            const totalPages = Math.ceil(wallets.length / itemsPerPage);
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            currentPage = page;
+            const start = (page - 1) * itemsPerPage;
+            const end = Math.min(start + itemsPerPage, wallets.length);
+            if (!cardsContainer) return;
+            const cards = cardsContainer.querySelectorAll('.wallet-card');
+            cards.forEach((c, idx) => {
+                c.style.display = (idx >= start && idx < end) ? 'flex' : 'none';
+            });
+            if (pageInfo) pageInfo.textContent = `Страница ${page} из ${totalPages || 1}`;
+            if (prevBtn) {
+                prevBtn.disabled = (page <= 1);
+                prevBtn.style.opacity = prevBtn.disabled ? '0.4' : '1';
+                prevBtn.style.cursor = prevBtn.disabled ? 'not-allowed' : 'pointer';
+            }
+            if (nextBtn) {
+                nextBtn.disabled = (page >= totalPages);
+                nextBtn.style.opacity = nextBtn.disabled ? '0.4' : '1';
+                nextBtn.style.cursor = nextBtn.disabled ? 'not-allowed' : 'pointer';
             }
         }
-    }
 
-    function openDetail(walletCard) {
-        const id = walletCard.dataset.id;
-        const name = walletCard.dataset.name;
-        currentWalletId = id;
-        detailName.textContent = name;
-        detailId.textContent = id;
-        const today = new Date().toISOString().split('T')[0];
-        opDate.value = today;
-        opType.value = 'income';
-        opAmount.value = '';
-        opCategory.value = '';
-        opDesc.value = '';
-        addOpMsg.textContent = '';
-        addOpMsg.className = 'message';
-        filterCategory.value = 'all';
-        filterDateFrom.value = '';
-        filterDateTo.value = '';
-        renderOperations(id);
-        overlay.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
+        // ===== ЗАГРУЗКА КОШЕЛЬКОВ =====
+        async function loadWallets() {
+            try {
+                const wallets = await apiRequest('/wallets');
+                allWallets = wallets;
+                renderWalletCards(wallets);
+                populateSelects(wallets);
+                // После загрузки кошельков, если вкладка "Операции" активна, загрузим операции
+                if (document.getElementById('tabOperations').checked) {
+                    loadGlobalOperations();
+                }
+            } catch (err) {
+                console.error('Ошибка загрузки кошельков:', err);
+                if (cardsContainer) cardsContainer.innerHTML = `<p class="error">Не удалось загрузить кошельки: ${err.message}</p>`;
+            }
+        }
 
-    function closeDetail() {
-        overlay.style.display = 'none';
-        document.body.style.overflow = '';
-    }
+        // ===== СОЗДАНИЕ КОШЕЛЬКА =====
+        if (createForm) {
+            createForm.removeEventListener('submit', createForm._submitHandler);
+            createForm._submitHandler = async function(e) {
+                e.preventDefault();
+                if (!isAuthorized()) {
+                    showToast('⚠️ Для создания кошелька необходимо авторизоваться.');
+                    return;
+                }
 
-    // Клик по карточке
-    cards.forEach(card => {
-        card.style.cursor = 'pointer';
-        card.addEventListener('click', function(e) {
-            e.stopPropagation();
-            openDetail(this);
+                const nameInput = document.getElementById('walletName');
+                const balanceInput = document.getElementById('walletBalance');
+                const currencySelect = document.getElementById('walletCurrency');
+                const name = nameInput ? nameInput.value.trim().slice(0, 50) : '';
+                const balance = balanceInput ? parseFloat(balanceInput.value) || 0 : 0;
+                const currency = currencySelect ? currencySelect.value : 'rub';
+
+                if (balance > 999999999.99) {
+                    showMessage(createMsg, 'Сумма не может превышать 999 999 999.99', true);
+                    return;
+                }
+
+                if (!name) {
+                    showMessage(createMsg, 'Введите название кошелька', true);
+                    return;
+                }
+
+                try {
+                    await apiRequest('/wallets', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            wallet_name: name,
+                            initial_balance: balance,
+                            currency: currency,
+                        }),
+                    });
+                    showMessage(createMsg, `Кошелёк "${name}" создан!`, false);
+                    if (nameInput) nameInput.value = '';
+                    if (balanceInput) balanceInput.value = '';
+                    await loadWallets();
+                } catch (err) {
+                    showMessage(createMsg, err.message, true);
+                }
+            };
+            createForm.addEventListener('submit', createForm._submitHandler);
+        }
+
+        function showMessage(el, text, isError = false) {
+            if (!el) return;
+            el.textContent = text;
+            el.className = 'message' + (isError ? ' error' : ' success');
+            setTimeout(() => { el.textContent = ''; el.className = 'message'; }, 5000);
+        }
+
+        // ===== ОБЩИЙ БАЛАНС =====
+        if (totalBalanceBtn) {
+            totalBalanceBtn.removeEventListener('click', totalBalanceBtn._clickHandler);
+            totalBalanceBtn._clickHandler = async function() {
+                if (!isAuthorized()) {
+                    showToast('⚠️ Для просмотра общего баланса необходимо авторизоваться.');
+                    return;
+                }
+                try {
+                    const data = await apiRequest('/balance');
+                    const total = parseFloat(data.total_balance);
+                    if (modalTotalDisplay) modalTotalDisplay.textContent = `${formatNumber(total)} ${data.currency.toUpperCase()}`;
+                    if (modalTotal) modalTotal.style.display = 'block';
+                } catch (err) {
+                    showToast('❌ Ошибка: ' + err.message);
+                }
+            };
+            totalBalanceBtn.addEventListener('click', totalBalanceBtn._clickHandler);
+        }
+        if (modalCloseTotal) {
+            modalCloseTotal.addEventListener('click', () => {
+                if (modalTotal) modalTotal.style.display = 'none';
+            });
+        }
+        window.addEventListener('click', (e) => {
+            if (e.target === modalTotal) {
+                if (modalTotal) modalTotal.style.display = 'none';
+            }
         });
-    });
 
-    closeOverlayBtn.addEventListener('click', closeDetail);
-    overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) closeDetail();
-    });
+        // ===== ОВЕРЛЕЙ ДЕТАЛЕЙ =====
+        let currentWalletId = null;
+        let currentWalletName = null;
 
-    // Фильтры
-    filterBtn.addEventListener('click', function() {
-        if (currentWalletId) renderOperations(currentWalletId);
-    });
-    resetFilterBtn.addEventListener('click', function() {
-        filterCategory.value = 'all';
-        filterDateFrom.value = '';
-        filterDateTo.value = '';
-        if (currentWalletId) renderOperations(currentWalletId);
-    });
-
-    // ========== ДОБАВЛЕНИЕ ОПЕРАЦИИ ==========
-    addOpForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        if (!currentWalletId) {
-            showAddMessage('Ошибка: кошелёк не выбран', true);
-            return;
-        }
-        const type = opType.value;
-        const amount = parseFloat(opAmount.value);
-        const category = opCategory.value.trim() || (type === 'income' ? 'Пополнение' : 'Покупка');
-        const date = opDate.value;
-        const desc = opDesc.value.trim() || 'Без описания';
-
-        if (isNaN(amount) || amount <= 0) {
-            showAddMessage('Введите положительную сумму', true);
-            return;
-        }
-        if (!date) {
-            showAddMessage('Выберите дату', true);
-            return;
-        }
-
-        let operation = {
-            date: date,
-            category: category,
-            desc: desc,
-        };
-        if (type === 'income') {
-            operation.amount = amount;
-        } else {
-            operation.amount = -amount;
-        }
-
-        if (!demoOperations[currentWalletId]) {
-            demoOperations[currentWalletId] = [];
-        }
-        demoOperations[currentWalletId].push(operation);
-
-        renderOperations(currentWalletId);
-        showAddMessage('✅ Операция добавлена', false);
-        opAmount.value = '';
-        opCategory.value = '';
-        opDesc.value = '';
-        setTimeout(() => { addOpMsg.textContent = ''; addOpMsg.className = 'message'; }, 3000);
-    });
-
-    function showAddMessage(text, isError) {
-        addOpMsg.textContent = text;
-        addOpMsg.className = 'message' + (isError ? ' error' : ' success');
-    }
-
-    // ========== ФОРМА СОЗДАНИЯ (ДЕМО) ==========
-    document.getElementById('createForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const msg = document.getElementById('createMessage');
-        msg.textContent = '✅ Кошелёк создан (демо)';
-        msg.className = 'message success';
-        setTimeout(() => { msg.textContent = ''; msg.className = 'message'; }, 3000);
-    });
-
-    // ========== ЗАПОЛНЕНИЕ ВЫПАДАЮЩИХ СПИСКОВ ==========
-    function populateSelects() {
-        const from = document.getElementById('fromWallet');
-        const to = document.getElementById('toWallet');
-        from.innerHTML = '<option value="">— Отправитель —</option>';
-        to.innerHTML = '<option value="">— Получатель —</option>';
-        cards.forEach(card => {
-            const id = card.dataset.id;
+        function openDetail(card) {
+            const id = parseInt(card.dataset.id);
             const name = card.dataset.name;
-            const option1 = document.createElement('option');
-            option1.value = id;
-            option1.textContent = `${name} (${id})`;
-            from.appendChild(option1.cloneNode(true));
-            to.appendChild(option1);
-        });
+            const balance = parseFloat(card.dataset.balance);
+            currentWalletId = id;
+            currentWalletName = name;
+            if (detailName) detailName.textContent = name;
+            if (detailId) detailId.textContent = id;
+            if (detailBalance) detailBalance.textContent = formatNumber(balance) + ' ₽';
+
+            if (filterCategory) filterCategory.value = 'all';
+            if (filterDateFrom) filterDateFrom.value = '';
+            if (filterDateTo) filterDateTo.value = '';
+            if (opType) opType.value = 'income';
+            if (opAmount) opAmount.value = '';
+            if (opDesc) opDesc.value = '';
+            if (addOpMsg) { addOpMsg.textContent = ''; addOpMsg.className = 'message'; }
+
+            loadOperations(id);
+            if (overlay) {
+                overlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeDetail() {
+            if (overlay) overlay.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        async function loadOperations(walletId) {
+            try {
+                const params = new URLSearchParams();
+                params.append('wallet_id', walletId);
+                const dateFrom = filterDateFrom ? filterDateFrom.value : '';
+                const dateTo = filterDateTo ? filterDateTo.value : '';
+                if (dateFrom) params.append('date_from', new Date(dateFrom).toISOString());
+                if (dateTo) params.append('date_to', new Date(dateTo).toISOString());
+                const ops = await apiRequest(`/operations?${params.toString()}`);
+                updateCategoryFilter(ops);
+                renderOperations(ops);
+            } catch (err) {
+                console.error('Ошибка загрузки операций:', err);
+                if (operationsBody) operationsBody.innerHTML = `<tr><td colspan="4" class="error">${err.message}</td></tr>`;
+            }
+        }
+
+        function updateCategoryFilter(ops) {
+            const categories = new Set();
+            ops.forEach(op => {
+                if (op.category) categories.add(op.category);
+            });
+            const currentVal = filterCategory ? filterCategory.value : 'all';
+            if (filterCategory) {
+                filterCategory.innerHTML = '<option value="all">Все категории</option>';
+                categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    filterCategory.appendChild(opt);
+                });
+                if (currentVal && categories.has(currentVal)) {
+                    filterCategory.value = currentVal;
+                }
+            }
+        }
+
+        function renderOperations(ops) {
+            const category = filterCategory ? filterCategory.value : 'all';
+            let filtered = ops;
+            if (category !== 'all') {
+                filtered = filtered.filter(op => op.category === category);
+            }
+            filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            if (!operationsBody) return;
+            if (filtered.length === 0) {
+                operationsBody.innerHTML = '';
+                if (noOpsMsg) noOpsMsg.style.display = 'block';
+                return;
+            }
+            if (noOpsMsg) noOpsMsg.style.display = 'none';
+            operationsBody.innerHTML = filtered.map(op => {
+                const amount = parseFloat(op.amount);
+                const sign = amount >= 0 ? '+' : '';
+                const formatted = formatNumber(amount);
+                const color = amount >= 0 ? '#0b6e4f' : '#b91c1c';
+                return `
+                    <tr>
+                        <td>${new Date(op.created_at).toLocaleDateString()}</td>
+                        <td>${op.category || '—'}</td>
+                        <td style="color: ${color}">${sign}${formatted}</td>
+                        <td>${op.description || '—'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== ДОБАВЛЕНИЕ ОПЕРАЦИИ (в оверлее) =====
+        if (addOpForm) {
+            addOpForm.removeEventListener('submit', addOpForm._submitHandler);
+            addOpForm._submitHandler = async function(e) {
+                e.preventDefault();
+                if (!isAuthorized()) {
+                    showToast('⚠️ Для добавления операции необходимо авторизоваться.');
+                    return;
+                }
+                if (!currentWalletId || !currentWalletName) {
+                    showAddMessage('Ошибка: кошелёк не выбран', true);
+                    return;
+                }
+                const type = opType ? opType.value : 'income';
+                const amount = opAmount ? parseFloat(opAmount.value) : 0;
+                const description = opDesc ? opDesc.value.trim().slice(0, 255) : '';
+
+                if (isNaN(amount) || amount <= 0) {
+                    showAddMessage('Введите положительную сумму', true);
+                    return;
+                }
+                if (amount > 999999999.99) {
+                    showAddMessage('Сумма не может превышать 999 999 999.99', true);
+                    return;
+                }
+
+                try {
+                    const endpoint = type === 'income' ? '/operations/income' : '/operations/expense';
+                    const body = {
+                        wallet_name: currentWalletName,
+                        amount: amount,
+                        description: description,
+                    };
+                    await apiRequest(endpoint, {
+                        method: 'POST',
+                        body: JSON.stringify(body),
+                    });
+                    showAddMessage('✅ Операция добавлена', false);
+                    await loadOperations(currentWalletId);
+                    await loadWallets();
+                    const wallet = allWallets.find(w => w.id === currentWalletId);
+                    if (wallet && detailBalance) {
+                        detailBalance.textContent = formatNumber(wallet.balance) + ' ₽';
+                    }
+                    if (opAmount) opAmount.value = '';
+                    if (opDesc) opDesc.value = '';
+                } catch (err) {
+                    showAddMessage(err.message, true);
+                }
+            };
+            addOpForm.addEventListener('submit', addOpForm._submitHandler);
+        }
+
+        function showAddMessage(text, isError) {
+            if (!addOpMsg) return;
+            addOpMsg.textContent = text;
+            addOpMsg.className = 'message' + (isError ? ' error' : ' success');
+            setTimeout(() => { addOpMsg.textContent = ''; addOpMsg.className = 'message'; }, 3000);
+        }
+
+        // ===== ФИЛЬТРЫ (для деталей кошелька) =====
+        if (filterBtn) {
+            filterBtn.removeEventListener('click', filterBtn._clickHandler);
+            filterBtn._clickHandler = function() {
+                if (currentWalletId) loadOperations(currentWalletId);
+            };
+            filterBtn.addEventListener('click', filterBtn._clickHandler);
+        }
+        if (resetFilterBtn) {
+            resetFilterBtn.removeEventListener('click', resetFilterBtn._clickHandler);
+            resetFilterBtn._clickHandler = function() {
+                if (filterCategory) filterCategory.value = 'all';
+                if (filterDateFrom) filterDateFrom.value = '';
+                if (filterDateTo) filterDateTo.value = '';
+                if (currentWalletId) loadOperations(currentWalletId);
+            };
+            resetFilterBtn.addEventListener('click', resetFilterBtn._clickHandler);
+        }
+
+        // ===== ЗАКРЫТИЕ ОВЕРЛЕЯ =====
+        if (closeOverlayBtn) {
+            closeOverlayBtn.removeEventListener('click', closeOverlayBtn._clickHandler);
+            closeOverlayBtn._clickHandler = closeDetail;
+            closeOverlayBtn.addEventListener('click', closeOverlayBtn._clickHandler);
+        }
+        if (overlay) {
+            overlay.removeEventListener('click', overlay._clickHandler);
+            overlay._clickHandler = function(e) {
+                if (e.target === overlay) closeDetail();
+            };
+            overlay.addEventListener('click', overlay._clickHandler);
+        }
+
+        // ===== ВЫПАДАЮЩИЕ СПИСКИ =====
+        function populateSelects(wallets) {
+            const from = document.getElementById('fromWallet');
+            const to = document.getElementById('toWallet');
+            if (!from || !to) return;
+            const fromVal = from.value;
+            const toVal = to.value;
+            from.innerHTML = '<option value="">— Отправитель —</option>';
+            to.innerHTML = '<option value="">— Получатель —</option>';
+            wallets.forEach(w => {
+                const opt1 = document.createElement('option');
+                opt1.value = w.id;
+                opt1.textContent = w.name;
+                from.appendChild(opt1);
+                const opt2 = document.createElement('option');
+                opt2.value = w.id;
+                opt2.textContent = w.name;
+                to.appendChild(opt2);
+            });
+            if (fromVal) from.value = fromVal;
+            if (toVal) to.value = toVal;
+        }
+
+        // ===== ПЕРЕВОД =====
+        const transferForm = document.getElementById('transferForm');
+        if (transferForm) {
+            transferForm.removeEventListener('submit', transferForm._submitHandler);
+            transferForm._submitHandler = async function(e) {
+                e.preventDefault();
+
+                if (!isAuthorized()) {
+                    showToast('⚠️ Для выполнения перевода необходимо авторизоваться.');
+                    return;
+                }
+
+                const fromId = parseInt(document.getElementById('fromWallet').value);
+                const toId = parseInt(document.getElementById('toWallet').value);
+                const amount = parseFloat(document.getElementById('transferAmount').value);
+                const msg = document.getElementById('transferMessage');
+
+                if (!fromId || !toId) {
+                    showMessage(msg, 'Выберите отправителя и получателя', true);
+                    return;
+                }
+                if (fromId === toId) {
+                    showMessage(msg, 'Отправитель и получатель должны различаться', true);
+                    return;
+                }
+                if (isNaN(amount) || amount <= 0) {
+                    showMessage(msg, 'Введите положительную сумму', true);
+                    return;
+                }
+                if (amount > 999999999.99) {
+                    showMessage(msg, 'Сумма не может превышать 999 999 999.99', true);
+                    return;
+                }
+
+                try {
+                    await apiRequest('/operations/transfer', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            from_wallet_id: fromId,
+                            to_wallet_id: toId,
+                            amount: amount,
+                        }),
+                    });
+                    showMessage(msg, 'Перевод выполнен!', false);
+                    document.getElementById('transferAmount').value = '';
+                    await loadWallets();
+                } catch (err) {
+                    showMessage(msg, err.message, true);
+                }
+            };
+            transferForm.addEventListener('submit', transferForm._submitHandler);
+        }
+
+        // ===== ПАГИНАЦИЯ (кошельки) =====
+        if (prevBtn) {
+            prevBtn.removeEventListener('click', prevBtn._clickHandler);
+            prevBtn._clickHandler = function() {
+                if (currentPage > 1) {
+                    showPage(currentPage - 1, filteredWallets);
+                }
+            };
+            prevBtn.addEventListener('click', prevBtn._clickHandler);
+        }
+        if (nextBtn) {
+            nextBtn.removeEventListener('click', nextBtn._clickHandler);
+            nextBtn._clickHandler = function() {
+                const totalPages = Math.ceil(filteredWallets.length / itemsPerPage);
+                if (currentPage < totalPages) {
+                    showPage(currentPage + 1, filteredWallets);
+                }
+            };
+            nextBtn.addEventListener('click', nextBtn._clickHandler);
+        }
+
+        // ===== ГЛОБАЛЬНЫЕ ОПЕРАЦИИ =====
+        async function loadGlobalOperations() {
+            if (!isAuthorized()) {
+                showToast('⚠️ Для просмотра операций необходимо авторизоваться.');
+                return;
+            }
+            try {
+                const params = new URLSearchParams();
+                const dateFrom = globalFilterDateFrom ? globalFilterDateFrom.value : '';
+                const dateTo = globalFilterDateTo ? globalFilterDateTo.value : '';
+                if (dateFrom) params.append('date_from', new Date(dateFrom).toISOString());
+                if (dateTo) params.append('date_to', new Date(dateTo).toISOString());
+                const ops = await apiRequest(`/operations?${params.toString()}`);
+                updateGlobalCategoryFilter(ops);
+                renderGlobalOperations(ops);
+            } catch (err) {
+                console.error('Ошибка загрузки операций:', err);
+                if (globalOperationsBody) globalOperationsBody.innerHTML = `<tr><td colspan="5" class="error">${err.message}</td></tr>`;
+            }
+        }
+
+        function updateGlobalCategoryFilter(ops) {
+            const categories = new Set();
+            ops.forEach(op => {
+                if (op.category) categories.add(op.category);
+            });
+            const currentVal = globalFilterCategory ? globalFilterCategory.value : 'all';
+            if (globalFilterCategory) {
+                globalFilterCategory.innerHTML = '<option value="all">Все категории</option>';
+                categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    globalFilterCategory.appendChild(opt);
+                });
+                if (currentVal && categories.has(currentVal)) {
+                    globalFilterCategory.value = currentVal;
+                }
+            }
+        }
+
+        function renderGlobalOperations(ops) {
+            const category = globalFilterCategory ? globalFilterCategory.value : 'all';
+            let filtered = ops;
+            if (category !== 'all') {
+                filtered = filtered.filter(op => op.category === category);
+            }
+            filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            if (!globalOperationsBody) return;
+            if (filtered.length === 0) {
+                globalOperationsBody.innerHTML = '';
+                if (globalNoOpsMsg) globalNoOpsMsg.style.display = 'block';
+                return;
+            }
+            if (globalNoOpsMsg) globalNoOpsMsg.style.display = 'none';
+            globalOperationsBody.innerHTML = filtered.map(op => {
+                const amount = parseFloat(op.amount);
+                const sign = amount >= 0 ? '+' : '';
+                const formatted = formatNumber(amount);
+                const color = amount >= 0 ? '#0b6e4f' : '#b91c1c';
+                const wallet = allWallets.find(w => w.id === op.wallet_id);
+                const walletName = wallet ? wallet.name : '—';
+                return `
+                    <tr>
+                        <td>${new Date(op.created_at).toLocaleDateString()}</td>
+                        <td>${walletName}</td>
+                        <td>${op.category || '—'}</td>
+                        <td style="color: ${color}">${sign}${formatted}</td>
+                        <td>${op.description || '—'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Обработчики глобальных фильтров
+        if (globalFilterBtn) {
+            globalFilterBtn.removeEventListener('click', globalFilterBtn._clickHandler);
+            globalFilterBtn._clickHandler = function() {
+                loadGlobalOperations();
+            };
+            globalFilterBtn.addEventListener('click', globalFilterBtn._clickHandler);
+        }
+        if (globalResetFilterBtn) {
+            globalResetFilterBtn.removeEventListener('click', globalResetFilterBtn._clickHandler);
+            globalResetFilterBtn._clickHandler = function() {
+                if (globalFilterCategory) globalFilterCategory.value = 'all';
+                if (globalFilterDateFrom) globalFilterDateFrom.value = '';
+                if (globalFilterDateTo) globalFilterDateTo.value = '';
+                loadGlobalOperations();
+            };
+            globalResetFilterBtn.addEventListener('click', globalResetFilterBtn._clickHandler);
+        }
+
+        // ===== ЗАПУСК =====
+        if (isAuthorized()) {
+            loadWallets();
+        } else {
+            if (cardsContainer) cardsContainer.innerHTML = '<p class="empty">Войдите, чтобы увидеть кошельки</p>';
+            const paginationEl = document.getElementById('pagination');
+            if (paginationEl) paginationEl.style.display = 'none';
+            // Для глобальных операций показываем сообщение, если не авторизован
+            if (globalOperationsBody) globalOperationsBody.innerHTML = '<tr><td colspan="5" class="empty">Войдите, чтобы увидеть операции</td></tr>';
+        }
     }
-    populateSelects();
+
+    // ===== СТАРТ =====
+    const savedLogin = localStorage.getItem(TOKEN_KEY);
+    if (savedLogin) {
+        (async function check() {
+            try {
+                await rawRequest('/users/me', {
+                    headers: { 'Authorization': `Bearer ${savedLogin}` }
+                });
+                updateUI(true, savedLogin);
+                initApp();
+            } catch (err) {
+                localStorage.removeItem(TOKEN_KEY);
+                updateUI(false);
+                initApp();
+            }
+        })();
+    } else {
+        updateUI(false);
+        initApp();
+    }
 })();
