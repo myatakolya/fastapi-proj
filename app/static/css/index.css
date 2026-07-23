@@ -92,7 +92,7 @@ body {
     color: #7f1d1d;
 }
 
-/* ===== Вкладки (без изменений) ===== */
+/* ===== Вкладки ===== */
 input[name="tabs"] {
     display: none;
 }
@@ -593,7 +593,7 @@ h2 {
     border: 1px solid #d1d5db;
     border-radius: 8px;
     font-size: 1rem;
-    height: 40px;      /* фиксированная высота */
+    height: 40px;
     line-height: 1.5;
 }
 
@@ -785,7 +785,7 @@ h2 {
     background: #cbd5e1;
 }
 
-/* ===== Таблица ===== */
+/* ===== Таблица операций (для деталей кошелька) ===== */
 .operations-table-wrapper {
     max-height: 40vh;
     overflow-y: auto;
@@ -823,6 +823,98 @@ h2 {
     text-align: center;
     padding: 1.5rem 0;
     margin: 0;
+}
+
+/* ===== Глобальная таблица операций ===== */
+#globalOperationsTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    table-layout: fixed;
+}
+
+#globalOperationsTable th,
+#globalOperationsTable td {
+    padding: 0.7rem 0.5rem;
+    border-bottom: 1px solid #e9edf2;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#globalOperationsTable th:nth-child(4),
+#globalOperationsTable td:nth-child(4) {
+    text-align: left;
+}
+
+#globalOperationsTable th:nth-child(1),
+#globalOperationsTable td:nth-child(1) {
+    width: 20%;
+    white-space: nowrap;
+}
+#globalOperationsTable th:nth-child(2),
+#globalOperationsTable td:nth-child(2) {
+    width: 25%;
+}
+#globalOperationsTable th:nth-child(3),
+#globalOperationsTable td:nth-child(3) {
+    width: 30%;
+}
+#globalOperationsTable th:nth-child(4),
+#globalOperationsTable td:nth-child(4) {
+    width: 25%;
+}
+
+#globalOperationsTable th {
+    background: #f1f5f9;
+    color: #1e293b;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+#globalOperationsTable tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* ===== Кнопки экспорта под таблицей ===== */
+.export-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.export-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #6366f1;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: white;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.export-btn:hover {
+    background: #6366f1;
+}
+
+.export-btn:active {
+    transform: scale(0.96);
+}
+
+@media (max-width: 600px) {
+    .export-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .export-btn {
+        text-align: center;
+    }
 }
 
 /* ===== TOAST ===== */
@@ -879,7 +971,7 @@ input:focus, select:focus {
     background: #fff;
 }
 
-button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balance-btn):not(.close-overlay-btn):not(.add-operation-form button):not(.filter-bar button):not(#transferBtn) {
+button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balance-btn):not(.close-overlay-btn):not(.add-operation-form button):not(.filter-bar button):not(#transferBtn):not(.export-btn) {
     padding: 0.6rem 1.4rem;
     border: none;
     border-radius: 10px;
@@ -895,11 +987,11 @@ button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balanc
     white-space: nowrap;
 }
 
-button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balance-btn):not(.close-overlay-btn):not(.add-operation-form button):not(.filter-bar button):not(#transferBtn):hover {
+button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balance-btn):not(.close-overlay-btn):not(.add-operation-form button):not(.filter-bar button):not(#transferBtn):not(.export-btn):hover {
     background: #4f46e5;
 }
 
-button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balance-btn):not(.close-overlay-btn):not(.add-operation-form button):not(.filter-bar button):not(#transferBtn):active {
+button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balance-btn):not(.close-overlay-btn):not(.add-operation-form button):not(.filter-bar button):not(#transferBtn):not(.export-btn):active {
     transform: scale(0.97);
 }
 
@@ -921,7 +1013,7 @@ button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balanc
     }
     .auth-controls {
         justify-content: center;
-        margin-left: 0; /* на мобилках центрируем */
+        margin-left: 0;
     }
     .action-buttons {
         flex-direction: column;
@@ -1001,5 +1093,79 @@ button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balanc
     #operationsTable td {
         padding: 0.4rem 0.6rem;
         font-size: 0.85rem;
+    }
+    #globalOperationsTable {
+        font-size: 0.85rem;
+    }
+    #globalOperationsTable th,
+    #globalOperationsTable td {
+        padding: 0.4rem 0.3rem;
+    }
+    #globalOperationsTable th:nth-child(1),
+    #globalOperationsTable td:nth-child(1) {
+        width: 22%;
+    }
+    #globalOperationsTable th:nth-child(2),
+    #globalOperationsTable td:nth-child(2) {
+        width: 20%;
+    }
+    #globalOperationsTable th:nth-child(3),
+    #globalOperationsTable td:nth-child(3) {
+        width: 28%;
+    }
+    #globalOperationsTable th:nth-child(4),
+    #globalOperationsTable td:nth-child(4) {
+        width: 30%;
+    }
+    /* ===== Модалка экспорта в CSV ===== */
+    #exportCsvModal .form-group {
+        margin-bottom: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+    }
+    #exportCsvModal .form-group label {
+        font-weight: 500;
+        margin-bottom: 0.2rem;
+        color: #334155;
+    }
+    #exportCsvModal .form-group input {
+        padding: 0.5rem 0.8rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.95rem;
+    }
+    #exportCsvModal form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    #exportCsvModal button[type="submit"] {
+        background: #6366f1;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    #exportCsvModal button[type="submit"]:hover {
+        background: #4f46e5;
+    }
+    #exportCsvModal #exportCsvCancel {
+        background: #e2e8f0;
+        color: #1e293b;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    #exportCsvModal #exportCsvCancel:hover {
+        background: #cbd5e1;
+    }
+    #exportCsvModal .modal-close {
+        top: 0.5rem;
+        right: 1rem;
     }
 }

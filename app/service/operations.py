@@ -1,8 +1,13 @@
+import io
+
+import csv
+
 from datetime import datetime
 
 from decimal import Decimal
 
 from fastapi import HTTPException
+from fastapi.responses import Response
 
 from sqlalchemy.orm import Session
 
@@ -126,3 +131,35 @@ async def transfer_between_wallets(db: Session, user_id: int, from_wallet_id: in
     
     return OperationResponse.model_validate(operation_to)
 
+def get_operations_csv(db: Session, user: User, date_from: datetime | None, date_to: datetime | None, filename: str) -> Response:
+    operations_list = get_operations_list(db, user, None, date_from, date_to)
+    
+    if not operations_list:
+        raise HTTPException(
+            status_code=404,
+            detail='Нет данных для экспорта в заданный период'
+        )
+    
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow(['ID', 'Wallet ID', 'Type', 'Amount', 'Currency', 'Category', 'Subcategory', 'Created At'])
+    
+    for operation in operations_list:
+        writer.writerow([
+            operation.id,
+            operation.wallet_id,
+            operation.type,
+            str(operation.amount),
+            operation.currency,
+            operation.category or '---',
+            operation.subcategory or '---',
+            operation.created_at.isoformat()
+        ])
+    
+    headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
+    
+    return Response(content=output.getvalue().encode('utf-8-sig'), media_type='text/csv', headers=headers)
+    
+    

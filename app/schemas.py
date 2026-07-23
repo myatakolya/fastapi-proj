@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -91,3 +92,26 @@ class TransferCreateSchema(BaseModel):
 class TotalBalance(BaseModel):
     total_balance: Decimal
     currency: CurrencyEnum
+    
+class ExportCsvParams(BaseModel):
+    date_from: Optional[datetime] = Field(None, description="Начало периода")
+    date_to: Optional[datetime] = Field(None, description="Конец периода")
+    filename: str = Field("operations.csv", description="Имя файла", max_length=255)
+
+    @field_validator('filename')
+    @classmethod
+    def validate_filename(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError('Имя файла не может быть пустым')
+        if any(char in value for char in '/\\:*?"<>|'):
+            raise ValueError('Имя файла содержит недопустимые символы')
+        return value
+
+    @field_validator('date_from', 'date_to')
+    @classmethod
+    def validate_date_range(cls, value: Optional[datetime], info) -> Optional[datetime]:
+        if info.field_name == 'date_to' and info.data.get('date_from') is not None:
+            if value is not None and value < info.data['date_from']:
+                raise ValueError('Дата "до" не может быть раньше даты "от"')
+        return value

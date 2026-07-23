@@ -8,6 +8,7 @@
 </head>
 <body>
     <div class="container">
+        <!-- Шапка -->
         <header class="header">
             <div class="auth-controls">
                 <span id="authStatus" class="auth-status">Гость</span>
@@ -17,6 +18,7 @@
             </div>
         </header>
 
+        <!-- Вкладки -->
         <input type="radio" name="tabs" id="tabWallets" checked />
         <input type="radio" name="tabs" id="tabOperations" />
         <input type="radio" name="tabs" id="tabTransfer" />
@@ -69,7 +71,7 @@
                 </section>
             </div>
 
-            <!-- Вкладка "Операции" (обновлена) -->
+            <!-- Вкладка "Операции" -->
             <div class="tab-pane" id="paneOperations">
                 <section class="card">
                     <h2>История операций</h2>
@@ -88,12 +90,18 @@
                         <div class="operations-table-wrapper">
                             <table id="globalOperationsTable">
                                 <thead>
-                                    <tr><th>Дата</th><th>Кошелёк</th><th>Категория</th><th>Сумма</th><th>Описание</th></tr>
+                                    <tr><th>Дата</th><th>Кошелёк</th><th>Категория</th><th>Сумма</th></tr>
                                 </thead>
                                 <tbody id="globalOperationsBody"></tbody>
                             </table>
                         </div>
                         <div id="globalNoOperationsMessage" class="empty">Операций нет</div>
+                        <!-- Кнопки экспорта под таблицей -->
+                        <div class="export-buttons">
+                            <button id="exportCsvBtn" class="export-btn">📄 CSV</button>
+                            <button id="exportExcelBtn" class="export-btn">📊 Excel</button>
+                            <button id="exportPdfBtn" class="export-btn">📑 PDF</button>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -190,6 +198,31 @@
                 <button type="submit" id="authBtn">Войти</button>
             </form>
             <div id="authMessage" class="message"></div>
+        </div>
+    </div>
+
+    <!-- Модалка экспорта в CSV -->
+    <div id="exportCsvModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close" id="exportCsvModalClose">&times;</span>
+            <h2>📄 Экспорт в CSV</h2>
+            <form id="exportCsvForm">
+                <div class="form-group">
+                    <label for="exportDateFrom">Дата от:</label>
+                    <input type="date" id="exportDateFrom" />
+                </div>
+                <div class="form-group">
+                    <label for="exportDateTo">Дата до:</label>
+                    <input type="date" id="exportDateTo" />
+                </div>
+                <div class="form-group">
+                    <label for="exportFileName">Имя файла:</label>
+                    <input type="text" id="exportFileName" value="operations.csv" />
+                </div>
+                <button type="submit" id="exportCsvSubmit">Скачать CSV</button>
+                <button type="button" id="exportCsvCancel">Отмена</button>
+            </form>
+            <div id="exportCsvMessage" class="message"></div>
         </div>
     </div>
 

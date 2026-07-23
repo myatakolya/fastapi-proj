@@ -1,16 +1,14 @@
 (function() {
-    // ===== КОНФИГ =====
     const API_BASE = '/api/v1';
     const TOKEN_KEY = 'fastapi_login';
 
-    // ===== ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ФОРМАТИРОВАНИЯ ЧИСЕЛ =====
     function formatNumber(value) {
         let num = parseFloat(value);
         if (isNaN(num)) return '0.00';
         return num.toFixed(2);
     }
 
-    // ===== ЭЛЕМЕНТЫ АВТОРИЗАЦИИ =====
+    // ===== ЭЛЕМЕНТЫ =====
     const authModal = document.getElementById('authModal');
     const authModalClose = document.getElementById('authModalClose');
     const authModalTitle = document.getElementById('authModalTitle');
@@ -28,7 +26,6 @@
     const actionButtons = document.getElementById('actionButtons');
     const transferBtn = document.getElementById('transferBtn');
 
-    // ===== TOAST =====
     const toast = document.getElementById('toast');
     let toastTimeout = null;
 
@@ -48,7 +45,6 @@
     let currentAuthMode = 'login';
     let appInitialized = false;
 
-    // ===== БАЗОВЫЙ ЗАПРОС =====
     async function rawRequest(endpoint, options = {}) {
         const url = `${API_BASE}${endpoint}`;
         const response = await fetch(url, {
@@ -70,7 +66,6 @@
         return null;
     }
 
-    // ===== АУТЕНТИФИКАЦИЯ =====
     async function authenticate(login) {
         try {
             await rawRequest('/users/me', {
@@ -94,12 +89,10 @@
         }
     }
 
-    // ===== ПРОВЕРКА АВТОРИЗАЦИИ =====
     function isAuthorized() {
         return !!localStorage.getItem(TOKEN_KEY);
     }
 
-    // ===== ОБНОВЛЕНИЕ UI =====
     function updateUI(isLoggedIn, login = '') {
         if (isLoggedIn) {
             authStatus.textContent = login;
@@ -118,7 +111,6 @@
         }
     }
 
-    // ===== МОДАЛКА АВТОРИЗАЦИИ =====
     function openAuthModal(mode) {
         currentAuthMode = mode;
         if (mode === 'login') {
@@ -140,7 +132,6 @@
         authModal.style.display = 'none';
     }
 
-    // Обработчики кнопок входа/регистрации
     authLoginBtn.addEventListener('click', () => openAuthModal('login'));
     authRegisterBtn.addEventListener('click', () => openAuthModal('register'));
     authModalClose.addEventListener('click', closeAuthModal);
@@ -148,7 +139,6 @@
         if (e.target === authModal) closeAuthModal();
     });
 
-    // Обработка формы авторизации
     authForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const login = authLogin.value.trim();
@@ -181,7 +171,6 @@
         }
     });
 
-    // ===== ВЫХОД =====
     authLogoutBtn.addEventListener('click', function() {
         localStorage.removeItem(TOKEN_KEY);
         updateUI(false);
@@ -235,7 +224,7 @@
             return null;
         }
 
-        // ===== ЭЛЕМЕНТЫ DOM =====
+        // ===== DOM =====
         const cardsContainer = document.getElementById('walletCards');
         const prevBtn = document.getElementById('prevPageBtn');
         const nextBtn = document.getElementById('nextPageBtn');
@@ -266,7 +255,6 @@
         const opDesc = document.getElementById('opDesc');
         const addOpMsg = document.getElementById('addOpMessage');
 
-        // ===== ГЛОБАЛЬНЫЕ ОПЕРАЦИИ (вкладка "Операции") =====
         const globalFilterCategory = document.getElementById('globalFilterCategory');
         const globalFilterDateFrom = document.getElementById('globalFilterDateFrom');
         const globalFilterDateTo = document.getElementById('globalFilterDateTo');
@@ -275,7 +263,42 @@
         const globalOperationsBody = document.getElementById('globalOperationsBody');
         const globalNoOpsMsg = document.getElementById('globalNoOperationsMessage');
 
-        // ===== ОБРАБОТКА КЛИКА ПО LABEL "Создать новый" =====
+        const exportCsvBtn = document.getElementById('exportCsvBtn');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const exportPdfBtn = document.getElementById('exportPdfBtn');
+
+        const exportCsvModal = document.getElementById('exportCsvModal');
+        const exportCsvModalClose = document.getElementById('exportCsvModalClose');
+        const exportCsvForm = document.getElementById('exportCsvForm');
+        const exportDateFrom = document.getElementById('exportDateFrom');
+        const exportDateTo = document.getElementById('exportDateTo');
+        const exportFileName = document.getElementById('exportFileName');
+        const exportCsvCancel = document.getElementById('exportCsvCancel');
+        const exportCsvMessage = document.getElementById('exportCsvMessage');
+
+        // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+        function openExportCsvModal() {
+            if (!isAuthorized()) {
+                showToast('⚠️ Для экспорта необходимо авторизоваться.');
+                openAuthModal('login');
+                return;
+            }
+            const now = new Date();
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(now.getMonth() - 1);
+            exportDateFrom.value = oneMonthAgo.toISOString().split('T')[0];
+            exportDateTo.value = now.toISOString().split('T')[0];
+            exportFileName.value = 'operations.csv';
+            exportCsvMessage.textContent = '';
+            exportCsvMessage.className = 'message';
+            exportCsvModal.style.display = 'block';
+        }
+
+        function closeExportCsvModal() {
+            exportCsvModal.style.display = 'none';
+        }
+
+        // ===== ОБРАБОТЧИКИ =====
         const createToggleLabel = document.querySelector('.create-toggle-btn');
         if (createToggleLabel) {
             createToggleLabel.removeEventListener('click', createToggleLabel._clickHandler);
@@ -283,13 +306,14 @@
                 if (!isAuthorized()) {
                     e.preventDefault();
                     showToast('⚠️ Для создания кошелька необходимо авторизоваться.');
+                    openAuthModal('login');
                     return;
                 }
             };
             createToggleLabel.addEventListener('click', createToggleLabel._clickHandler);
         }
 
-        // ===== ПАГИНАЦИЯ (кошельки) =====
+        // ===== ПАГИНАЦИЯ =====
         function renderWalletCards(wallets) {
             if (!cardsContainer) return;
             cardsContainer.innerHTML = '';
@@ -317,6 +341,7 @@
                 card._clickHandler = function(e) {
                     if (!isAuthorized()) {
                         showToast('⚠️ Для просмотра деталей необходимо авторизоваться.');
+                        openAuthModal('login');
                         return;
                     }
                     e.stopPropagation();
@@ -363,8 +388,7 @@
                 allWallets = wallets;
                 renderWalletCards(wallets);
                 populateSelects(wallets);
-                // После загрузки кошельков, если вкладка "Операции" активна, загрузим операции
-                if (document.getElementById('tabOperations').checked) {
+                if (document.getElementById('tabOperations').checked && isAuthorized()) {
                     loadGlobalOperations();
                 }
             } catch (err) {
@@ -380,26 +404,23 @@
                 e.preventDefault();
                 if (!isAuthorized()) {
                     showToast('⚠️ Для создания кошелька необходимо авторизоваться.');
+                    openAuthModal('login');
                     return;
                 }
-
                 const nameInput = document.getElementById('walletName');
                 const balanceInput = document.getElementById('walletBalance');
                 const currencySelect = document.getElementById('walletCurrency');
                 const name = nameInput ? nameInput.value.trim().slice(0, 50) : '';
                 const balance = balanceInput ? parseFloat(balanceInput.value) || 0 : 0;
                 const currency = currencySelect ? currencySelect.value : 'rub';
-
                 if (balance > 999999999.99) {
                     showMessage(createMsg, 'Сумма не может превышать 999 999 999.99', true);
                     return;
                 }
-
                 if (!name) {
                     showMessage(createMsg, 'Введите название кошелька', true);
                     return;
                 }
-
                 try {
                     await apiRequest('/wallets', {
                         method: 'POST',
@@ -413,6 +434,7 @@
                     if (nameInput) nameInput.value = '';
                     if (balanceInput) balanceInput.value = '';
                     await loadWallets();
+                    if (isAuthorized()) loadGlobalOperations();
                 } catch (err) {
                     showMessage(createMsg, err.message, true);
                 }
@@ -433,6 +455,7 @@
             totalBalanceBtn._clickHandler = async function() {
                 if (!isAuthorized()) {
                     showToast('⚠️ Для просмотра общего баланса необходимо авторизоваться.');
+                    openAuthModal('login');
                     return;
                 }
                 try {
@@ -457,7 +480,7 @@
             }
         });
 
-        // ===== ОВЕРЛЕЙ ДЕТАЛЕЙ =====
+        // ===== ОВЕРЛЕЙ =====
         let currentWalletId = null;
         let currentWalletName = null;
 
@@ -470,7 +493,6 @@
             if (detailName) detailName.textContent = name;
             if (detailId) detailId.textContent = id;
             if (detailBalance) detailBalance.textContent = formatNumber(balance) + ' ₽';
-
             if (filterCategory) filterCategory.value = 'all';
             if (filterDateFrom) filterDateFrom.value = '';
             if (filterDateTo) filterDateTo.value = '';
@@ -478,7 +500,6 @@
             if (opAmount) opAmount.value = '';
             if (opDesc) opDesc.value = '';
             if (addOpMsg) { addOpMsg.textContent = ''; addOpMsg.className = 'message'; }
-
             loadOperations(id);
             if (overlay) {
                 overlay.style.display = 'flex';
@@ -535,7 +556,6 @@
                 filtered = filtered.filter(op => op.category === category);
             }
             filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
             if (!operationsBody) return;
             if (filtered.length === 0) {
                 operationsBody.innerHTML = '';
@@ -559,13 +579,14 @@
             }).join('');
         }
 
-        // ===== ДОБАВЛЕНИЕ ОПЕРАЦИИ (в оверлее) =====
+        // ===== ДОБАВЛЕНИЕ ОПЕРАЦИИ =====
         if (addOpForm) {
             addOpForm.removeEventListener('submit', addOpForm._submitHandler);
             addOpForm._submitHandler = async function(e) {
                 e.preventDefault();
                 if (!isAuthorized()) {
                     showToast('⚠️ Для добавления операции необходимо авторизоваться.');
+                    openAuthModal('login');
                     return;
                 }
                 if (!currentWalletId || !currentWalletName) {
@@ -575,7 +596,6 @@
                 const type = opType ? opType.value : 'income';
                 const amount = opAmount ? parseFloat(opAmount.value) : 0;
                 const description = opDesc ? opDesc.value.trim().slice(0, 255) : '';
-
                 if (isNaN(amount) || amount <= 0) {
                     showAddMessage('Введите положительную сумму', true);
                     return;
@@ -584,7 +604,6 @@
                     showAddMessage('Сумма не может превышать 999 999 999.99', true);
                     return;
                 }
-
                 try {
                     const endpoint = type === 'income' ? '/operations/income' : '/operations/expense';
                     const body = {
@@ -599,6 +618,7 @@
                     showAddMessage('✅ Операция добавлена', false);
                     await loadOperations(currentWalletId);
                     await loadWallets();
+                    if (isAuthorized()) loadGlobalOperations();
                     const wallet = allWallets.find(w => w.id === currentWalletId);
                     if (wallet && detailBalance) {
                         detailBalance.textContent = formatNumber(wallet.balance) + ' ₽';
@@ -619,7 +639,7 @@
             setTimeout(() => { addOpMsg.textContent = ''; addOpMsg.className = 'message'; }, 3000);
         }
 
-        // ===== ФИЛЬТРЫ (для деталей кошелька) =====
+        // ===== ФИЛЬТРЫ =====
         if (filterBtn) {
             filterBtn.removeEventListener('click', filterBtn._clickHandler);
             filterBtn._clickHandler = function() {
@@ -681,17 +701,15 @@
             transferForm.removeEventListener('submit', transferForm._submitHandler);
             transferForm._submitHandler = async function(e) {
                 e.preventDefault();
-
                 if (!isAuthorized()) {
                     showToast('⚠️ Для выполнения перевода необходимо авторизоваться.');
+                    openAuthModal('login');
                     return;
                 }
-
                 const fromId = parseInt(document.getElementById('fromWallet').value);
                 const toId = parseInt(document.getElementById('toWallet').value);
                 const amount = parseFloat(document.getElementById('transferAmount').value);
                 const msg = document.getElementById('transferMessage');
-
                 if (!fromId || !toId) {
                     showMessage(msg, 'Выберите отправителя и получателя', true);
                     return;
@@ -708,7 +726,6 @@
                     showMessage(msg, 'Сумма не может превышать 999 999 999.99', true);
                     return;
                 }
-
                 try {
                     await apiRequest('/operations/transfer', {
                         method: 'POST',
@@ -721,6 +738,7 @@
                     showMessage(msg, 'Перевод выполнен!', false);
                     document.getElementById('transferAmount').value = '';
                     await loadWallets();
+                    if (isAuthorized()) loadGlobalOperations();
                 } catch (err) {
                     showMessage(msg, err.message, true);
                 }
@@ -728,7 +746,7 @@
             transferForm.addEventListener('submit', transferForm._submitHandler);
         }
 
-        // ===== ПАГИНАЦИЯ (кошельки) =====
+        // ===== ПАГИНАЦИЯ =====
         if (prevBtn) {
             prevBtn.removeEventListener('click', prevBtn._clickHandler);
             prevBtn._clickHandler = function() {
@@ -753,6 +771,7 @@
         async function loadGlobalOperations() {
             if (!isAuthorized()) {
                 showToast('⚠️ Для просмотра операций необходимо авторизоваться.');
+                openAuthModal('login');
                 return;
             }
             try {
@@ -766,7 +785,7 @@
                 renderGlobalOperations(ops);
             } catch (err) {
                 console.error('Ошибка загрузки операций:', err);
-                if (globalOperationsBody) globalOperationsBody.innerHTML = `<tr><td colspan="5" class="error">${err.message}</td></tr>`;
+                if (globalOperationsBody) globalOperationsBody.innerHTML = `<tr><td colspan="4" class="error">${err.message}</td></tr>`;
             }
         }
 
@@ -797,7 +816,6 @@
                 filtered = filtered.filter(op => op.category === category);
             }
             filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
             if (!globalOperationsBody) return;
             if (filtered.length === 0) {
                 globalOperationsBody.innerHTML = '';
@@ -818,13 +836,11 @@
                         <td>${walletName}</td>
                         <td>${op.category || '—'}</td>
                         <td style="color: ${color}">${sign}${formatted}</td>
-                        <td>${op.description || '—'}</td>
                     </tr>
                 `;
             }).join('');
         }
 
-        // Обработчики глобальных фильтров
         if (globalFilterBtn) {
             globalFilterBtn.removeEventListener('click', globalFilterBtn._clickHandler);
             globalFilterBtn._clickHandler = function() {
@@ -843,6 +859,145 @@
             globalResetFilterBtn.addEventListener('click', globalResetFilterBtn._clickHandler);
         }
 
+        // ===== КНОПКИ ЭКСПОРТА =====
+        function handleExport(format) {
+            if (!isAuthorized()) {
+                showToast('⚠️ Для экспорта необходимо авторизоваться.');
+                openAuthModal('login');
+                return;
+            }
+            showToast(`📤 Экспорт в ${format} будет реализован в следующей версии.`);
+        }
+
+        if (exportExcelBtn) {
+            exportExcelBtn.addEventListener('click', () => handleExport('Excel'));
+        }
+        if (exportPdfBtn) {
+            exportPdfBtn.addEventListener('click', () => handleExport('PDF'));
+        }
+
+        if (exportCsvBtn) {
+            exportCsvBtn.removeEventListener('click', exportCsvBtn._clickHandler);
+            exportCsvBtn._clickHandler = openExportCsvModal;
+            exportCsvBtn.addEventListener('click', exportCsvBtn._clickHandler);
+        }
+
+        if (exportCsvModalClose) {
+            exportCsvModalClose.addEventListener('click', closeExportCsvModal);
+        }
+        if (exportCsvCancel) {
+            exportCsvCancel.addEventListener('click', closeExportCsvModal);
+        }
+        window.addEventListener('click', (e) => {
+            if (e.target === exportCsvModal) closeExportCsvModal();
+        });
+
+        // ===== ЭКСПОРТ CSV – ИСПРАВЛЕННЫЙ ОБРАБОТЧИК =====
+        if (exportCsvForm) {
+            exportCsvForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                // Получаем значения
+                let dateFrom = exportDateFrom.value;
+                let dateTo = exportDateTo.value;
+                const fileName = exportFileName.value.trim() || 'operations.csv';
+
+                const token = localStorage.getItem(TOKEN_KEY);
+                if (!token) {
+                    showToast('⚠️ Требуется авторизация. Войдите в систему.');
+                    openAuthModal('login');
+                    return;
+                }
+
+                // Преобразуем дату из DD.MM.YYYY в YYYY-MM-DD (если введена вручную)
+                function toISODate(str) {
+                    if (!str) return '';
+                    // Если уже YYYY-MM-DD, возвращаем как есть
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+                    // Пробуем разобрать DD.MM.YYYY
+                    const parts = str.split('.');
+                    if (parts.length === 3) {
+                        const [day, month, year] = parts;
+                        if (day && month && year && day.length === 2 && month.length === 2 && year.length === 4) {
+                            return `${year}-${month}-${day}`;
+                        }
+                    }
+                    // Если ничего не подошло, возвращаем исходную строку (может, это уже ISO)
+                    return str;
+                }
+
+                const dateFromISO = toISODate(dateFrom);
+                const dateToISO = toISODate(dateTo);
+
+                // Проверка корректности дат
+                if (dateFromISO && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromISO)) {
+                    showToast('⚠️ Неверный формат даты "от". Используйте ДД.ММ.ГГГГ или ГГГГ-ММ-ДД.');
+                    return;
+                }
+                if (dateToISO && !/^\d{4}-\d{2}-\d{2}$/.test(dateToISO)) {
+                    showToast('⚠️ Неверный формат даты "до". Используйте ДД.ММ.ГГГГ или ГГГГ-ММ-ДД.');
+                    return;
+                }
+
+                if (dateFromISO && dateToISO && dateFromISO > dateToISO) {
+                    showToast('⚠️ Дата "от" не может быть позже даты "до".');
+                    return;
+                }
+
+                try {
+                    const params = new URLSearchParams();
+                    if (dateFromISO) params.append('date_from', dateFromISO);
+                    if (dateToISO) params.append('date_to', dateToISO);
+                    params.append('filename', fileName);
+
+                    const url = `/api/v1/export/csv?${params.toString()}`;
+                    console.log('Sending request to:', url);
+
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        let errorText = await response.text();
+                        try {
+                            const json = JSON.parse(errorText);
+                            errorText = json.detail || errorText;
+                        } catch (e) {}
+                        throw new Error(errorText || 'Ошибка экспорта');
+                    }
+
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(downloadUrl);
+
+                    closeExportCsvModal();
+                    showToast(`✅ Файл "${fileName}" успешно скачан.`);
+                } catch (err) {
+                    showToast('❌ Ошибка: ' + err.message);
+                }
+            });
+        }
+
+        // ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДКИ =====
+        const tabOperationsLabel = document.querySelector('label[for="tabOperations"]');
+        if (tabOperationsLabel) {
+            tabOperationsLabel.addEventListener('click', function() {
+                setTimeout(() => {
+                    if (document.getElementById('tabOperations').checked && isAuthorized()) {
+                        loadGlobalOperations();
+                    }
+                }, 100);
+            });
+        }
+
         // ===== ЗАПУСК =====
         if (isAuthorized()) {
             loadWallets();
@@ -850,8 +1005,7 @@
             if (cardsContainer) cardsContainer.innerHTML = '<p class="empty">Войдите, чтобы увидеть кошельки</p>';
             const paginationEl = document.getElementById('pagination');
             if (paginationEl) paginationEl.style.display = 'none';
-            // Для глобальных операций показываем сообщение, если не авторизован
-            if (globalOperationsBody) globalOperationsBody.innerHTML = '<tr><td colspan="5" class="empty">Войдите, чтобы увидеть операции</td></tr>';
+            if (globalOperationsBody) globalOperationsBody.innerHTML = '<tr><td colspan="4" class="empty">Войдите, чтобы увидеть операции</td></tr>';
         }
     }
 
