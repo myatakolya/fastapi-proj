@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Кошелёк-сервис</title>
+    <link rel="stylesheet" href="./css/index.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Управление кошельками</h1>
+
+        <input type="radio" name="tabs" id="tabWallets" checked />
+        <input type="radio" name="tabs" id="tabOperations" />
+        <input type="radio" name="tabs" id="tabTransfer" />
+
+        <div class="tab-headers">
+            <label for="tabWallets" class="tab-label">💼 Кошельки</label>
+            <label for="tabOperations" class="tab-label">📋 Операции</label>
+            <label for="tabTransfer" class="tab-label">💸 Перевод</label>
+        </div>
+
+        <div class="tab-content">
+
+            <!-- Вкладка "Кошельки" -->
+            <div class="tab-pane" id="paneWallets">
+                <section class="card">
+                    <input type="checkbox" id="showCreateForm" class="toggle-checkbox" />
+                    <h2>Управление кошельками</h2>
+                    <div class="action-buttons">
+                        <label for="showCreateForm" class="create-toggle-btn">➕ Создать новый</label>
+                        <button id="totalBalanceBtn" class="total-balance-btn">💰 Общий баланс</button>
+                    </div>
+                    <div class="create-form-wrapper">
+                        <form id="createForm">
+                            <input type="text" id="walletName" placeholder="Название кошелька" required />
+                            <input type="number" id="walletBalance" placeholder="Начальный баланс" step="0.01" min="0" required />
+                            <select id="walletCurrency" required>
+                                <option value="RUB">RUB</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                            </select>
+                            <button type="submit" id="createBtn">✅ Создать</button>
+                            <label for="showCreateForm" class="cancel-btn">Отмена</label>
+                        </form>
+                        <div id="createMessage" class="message"></div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2>Все кошельки</h2>
+                    <div id="walletListMessage" class="message empty-message hidden"></div>
+
+                    <div class="wallet-display">
+                        <button id="prevPageBtn" class="page-btn">❮</button>
+                        <div class="wallet-grid" id="walletCards">
+                            <!-- 11 демо-карточек -->
+                            <div class="wallet-card" data-id="1" data-name="Основной" data-balance="1500.00">
+                                <div class="wallet-name">Основной</div>
+                                <div class="wallet-id">ID: 1</div>
+                                <div class="wallet-balance">1500.00 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="2" data-name="Сбережения" data-balance="8500.50">
+                                <div class="wallet-name">Сбережения</div>
+                                <div class="wallet-id">ID: 2</div>
+                                <div class="wallet-balance">8500.50 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="3" data-name="Расходы" data-balance="320.75">
+                                <div class="wallet-name">Расходы</div>
+                                <div class="wallet-id">ID: 3</div>
+                                <div class="wallet-balance">320.75 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="4" data-name="Инвестиции" data-balance="12000.00">
+                                <div class="wallet-name">Инвестиции</div>
+                                <div class="wallet-id">ID: 4</div>
+                                <div class="wallet-balance">12000.00 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="5" data-name="Резерв" data-balance="3000.00">
+                                <div class="wallet-name">Резерв</div>
+                                <div class="wallet-id">ID: 5</div>
+                                <div class="wallet-balance">3000.00 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="6" data-name="Подарки" data-balance="450.20">
+                                <div class="wallet-name">Подарки</div>
+                                <div class="wallet-id">ID: 6</div>
+                                <div class="wallet-balance">450.20 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="7" data-name="Путешествия" data-balance="6700.00">
+                                <div class="wallet-name">Путешествия</div>
+                                <div class="wallet-id">ID: 7</div>
+                                <div class="wallet-balance">6700.00 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="8" data-name="Обучение" data-balance="2300.30">
+                                <div class="wallet-name">Обучение</div>
+                                <div class="wallet-id">ID: 8</div>
+                                <div class="wallet-balance">2300.30 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="9" data-name="Здоровье" data-balance="1500.00">
+                                <div class="wallet-name">Здоровье</div>
+                                <div class="wallet-id">ID: 9</div>
+                                <div class="wallet-balance">1500.00 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="10" data-name="Авто" data-balance="950.00">
+                                <div class="wallet-name">Авто</div>
+                                <div class="wallet-id">ID: 10</div>
+                                <div class="wallet-balance">950.00 ₽</div>
+                            </div>
+                            <div class="wallet-card" data-id="11" data-name="Дом" data-balance="4200.00">
+                                <div class="wallet-name">Дом</div>
+                                <div class="wallet-id">ID: 11</div>
+                                <div class="wallet-balance">4200.00 ₽</div>
+                            </div>
+                        </div>
+                        <button id="nextPageBtn" class="page-btn">❯</button>
+                    </div>
+                    <div class="pagination-info" id="pageInfo">Страница 1 из 1</div>
+                </section>
+            </div>
+
+            <!-- Вкладка "Операции" (заглушка) -->
+            <div class="tab-pane" id="paneOperations">
+                <section class="card">
+                    <h2>История операций</h2>
+                    <div id="operationsList">
+                        <p class="empty">Здесь будет отображаться история переводов</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Вкладка "Перевод" -->
+            <div class="tab-pane" id="paneTransfer">
+                <section class="card">
+                    <h2>Перевод средств</h2>
+                    <form id="transferForm">
+                        <select id="fromWallet" required>
+                            <option value="">— Отправитель —</option>
+                        </select>
+                        <select id="toWallet" required>
+                            <option value="">— Получатель —</option>
+                        </select>
+                        <input type="number" id="transferAmount" placeholder="Сумма" step="0.01" min="0.01" required />
+                        <button type="submit" id="transferBtn">💸 Перевести</button>
+                    </form>
+                    <div id="transferMessage" class="message"></div>
+                </section>
+            </div>
+
+        </div><!-- /tab-content -->
+    </div><!-- /container -->
+
+    <!-- ===== Модалка общего баланса ===== -->
+    <div id="totalModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>💰 Общий баланс</h2>
+            <div id="modalTotalDisplay" class="modal-total">Загрузка...</div>
+            <p class="modal-note">* Сумма всех кошельков в рублях (для демонстрации)</p>
+        </div>
+    </div>
+
+    <!-- ===== ПОЛНОЭКРАННЫЙ ОВЕРЛЕЙ ДЕТАЛЕЙ КОШЕЛЬКА ===== -->
+    <div id="walletDetailOverlay" class="overlay">
+        <div class="overlay-content">
+            <div class="overlay-header">
+                <h2 id="detailWalletName">Кошелёк</h2>
+                <button id="closeDetailOverlay" class="close-overlay-btn">✕</button>
+            </div>
+            <div class="detail-info">
+                <p><strong>ID:</strong> <span id="detailWalletId">—</span></p>
+                <p><strong>Баланс:</strong> <span id="detailWalletBalance">—</span></p>
+            </div>
+            <hr />
+
+            <!-- Форма добавления операции -->
+            <div class="add-operation-form">
+                <h3>Добавить операцию</h3>
+                <form id="addOperationForm">
+                    <select id="opType" required>
+                        <option value="income">Доход</option>
+                        <option value="expense">Расход</option>
+                    </select>
+                    <input type="number" id="opAmount" placeholder="Сумма" step="0.01" required />
+                    <input type="text" id="opCategory" placeholder="Категория" />
+                    <input type="date" id="opDate" required />
+                    <input type="text" id="opDesc" placeholder="Описание" />
+                    <button type="submit" id="addOpBtn">➕ Добавить</button>
+                </form>
+                <div id="addOpMessage" class="message"></div>
+            </div>
+            <hr />
+
+            <h3>Операции</h3>
+            <div class="filter-bar">
+                <select id="filterCategory">
+                    <option value="all">Все категории</option>
+                    <option value="Пополнение">Пополнение</option>
+                    <option value="Покупка">Покупка</option>
+                    <option value="Перевод">Перевод</option>
+                    <option value="Снятие">Снятие</option>
+                </select>
+                <input type="date" id="filterDateFrom" />
+                <input type="date" id="filterDateTo" />
+                <button id="filterBtn">Применить</button>
+                <button id="resetFilterBtn">Сбросить</button>
+            </div>
+            <div class="operations-table-wrapper">
+                <table id="operationsTable">
+                    <thead>
+                        <tr><th>Дата</th><th>Категория</th><th>Сумма</th><th>Описание</th></tr>
+                    </thead>
+                    <tbody id="operationsBody"></tbody>
+                </table>
+            </div>
+            <div id="noOperationsMessage" class="empty">Операций нет</div>
+        </div>
+    </div>
+
+    <!-- Подключаем JS -->
+    <script src="./js/index.js"></script>
+</body>
+</html>

@@ -1,0 +1,821 @@
+/* ===== Общие стили ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+body {
+    background: #f4f6f9;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem 1rem;
+}
+
+.container {
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+h1 {
+    font-size: 2.2rem;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    letter-spacing: -0.5px;
+}
+
+/* ===== Вкладки ===== */
+input[name="tabs"] {
+    display: none;
+}
+
+.tab-headers {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+}
+
+.tab-label {
+    padding: 0.6rem 1.4rem;
+    border-radius: 10px 10px 0 0;
+    background: #e2e8f0;
+    color: #1e293b;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    user-select: none;
+    flex: 1;
+    text-align: center;
+}
+
+.tab-label:hover {
+    background: #cbd5e1;
+}
+
+#tabWallets:checked ~ .tab-headers label[for="tabWallets"],
+#tabOperations:checked ~ .tab-headers label[for="tabOperations"],
+#tabTransfer:checked ~ .tab-headers label[for="tabTransfer"] {
+    background: #6366f1;
+    color: white;
+}
+
+.tab-content {
+    position: relative;
+}
+
+.tab-pane {
+    display: none;
+    animation: fade 0.3s ease;
+}
+
+@keyframes fade {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+#tabWallets:checked ~ .tab-content #paneWallets,
+#tabOperations:checked ~ .tab-content #paneOperations,
+#tabTransfer:checked ~ .tab-content #paneTransfer {
+    display: block;
+}
+
+/* ===== Карточки ===== */
+.card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+    transition: box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.card:hover {
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.07);
+}
+
+h2 {
+    font-size: 1.3rem;
+    color: #334155;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    width: 100%;
+    text-align: center;
+}
+
+/* ===== Блок действий ===== */
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.toggle-checkbox {
+    display: none;
+}
+
+.create-toggle-btn {
+    display: inline-block;
+    padding: 0.6rem 1.4rem;
+    background: #6366f1;
+    color: white;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    border: none;
+    user-select: none;
+}
+
+.create-toggle-btn:hover {
+    background: #4f46e5;
+}
+
+.create-toggle-btn:active {
+    transform: scale(0.97);
+}
+
+.total-balance-btn {
+    padding: 0.6rem 1.4rem;
+    border: none;
+    border-radius: 10px;
+    background: #6366f1;
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.total-balance-btn:hover {
+    background: #4f46e5;
+}
+
+.total-balance-btn:active {
+    transform: scale(0.97);
+}
+
+/* ===== Форма создания ===== */
+.create-form-wrapper {
+    display: none;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    width: 100%;
+}
+
+#showCreateForm:checked ~ .create-form-wrapper {
+    display: block;
+}
+
+#showCreateForm:checked ~ .create-toggle-btn {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+#showCreateForm:checked ~ .create-toggle-btn:hover {
+    background: #cbd5e1;
+}
+
+.create-form-wrapper form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.create-form-wrapper input,
+.create-form-wrapper select {
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: #fafbfc;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    flex: 1 1 140px;
+    min-width: 100px;
+}
+
+.create-form-wrapper input:focus,
+.create-form-wrapper select:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    background: #fff;
+}
+
+.create-form-wrapper select {
+    flex: 0 0 auto;
+    min-width: 80px;
+}
+
+.create-form-wrapper button {
+    padding: 0.6rem 1.4rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: #22c55e;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.create-form-wrapper button:hover {
+    background: #16a34a;
+}
+
+.cancel-btn {
+    padding: 0.6rem 1.4rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: #e2e8f0;
+    color: #1e293b;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: inline-block;
+    user-select: none;
+}
+
+.cancel-btn:hover {
+    background: #cbd5e1;
+}
+
+/* ===== Контейнер карточек + стрелки ===== */
+.wallet-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
+    width: 100%;
+}
+
+.wallet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    flex: 1;
+}
+
+/* ===== Карточки кошельков ===== */
+.wallet-card {
+    background: #f8fafc;
+    border: 1px solid #e9edf2;
+    border-radius: 14px;
+    padding: 1.2rem 1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.wallet-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.wallet-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.wallet-id {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.wallet-balance {
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #0b6e4f;
+    margin-top: 0.2rem;
+    background: #d1fae5;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    display: inline-block;
+    align-self: flex-start;
+}
+
+/* ===== Стрелки ===== */
+.page-btn {
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    background: #6366f1;
+    color: white;
+    font-size: 1.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s, transform 0.1s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.page-btn:hover:not(:disabled) {
+    background: #4f46e5;
+    transform: scale(1.05);
+}
+
+.page-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* ===== Номер страницы ===== */
+.pagination-info {
+    text-align: center;
+    margin-top: 0.75rem;
+    font-size: 0.95rem;
+    color: #334155;
+    font-weight: 500;
+    width: 100%;
+}
+
+/* ===== Сообщения ===== */
+.message {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    transition: opacity 0.3s;
+    width: 100%;
+}
+
+.message.success {
+    color: #0b6e4f;
+    background: #d1fae5;
+}
+
+.message.error {
+    color: #9b1c1c;
+    background: #fee2e2;
+}
+
+.message.empty-message {
+    color: #64748b;
+    background: transparent;
+    font-style: italic;
+    padding: 1rem 0;
+    text-align: center;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ===== Модальное окно общего баланса ===== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.modal-content {
+    background: white;
+    margin: 10% auto;
+    padding: 2rem;
+    border-radius: 16px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    position: relative;
+    animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-30px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+.modal-close {
+    position: absolute;
+    right: 1.2rem;
+    top: 0.8rem;
+    font-size: 2rem;
+    font-weight: 300;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #1e293b;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.modal-total {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #0b6e4f;
+    background: #f0fdf4;
+    padding: 0.8rem;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.modal-note {
+    font-size: 0.85rem;
+    color: #64748b;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+/* ===== Полноэкранный оверлей деталей кошелька ===== */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    animation: fadeIn 0.3s;
+}
+
+.overlay-content {
+    background: #ffffff;
+    border-radius: 20px;
+    max-width: 1100px;
+    width: 100%;
+    max-height: 90vh;
+    padding: 2rem;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideDown 0.3s;
+}
+
+.overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.overlay-header h2 {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.close-overlay-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #94a3b8;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.close-overlay-btn:hover {
+    color: #1e293b;
+}
+
+/* ===== Детали внутри оверлея ===== */
+.detail-info {
+    display: flex;
+    gap: 2rem;
+    background: #f8fafc;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    margin: 0.5rem 0 1rem 0;
+}
+
+.detail-info p {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.detail-info strong {
+    color: #334155;
+}
+
+/* ===== Форма добавления операции ===== */
+.add-operation-form {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+.add-operation-form h3 {
+    font-size: 1.1rem;
+    color: #334155;
+    margin-bottom: 0.75rem;
+}
+
+.add-operation-form form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.add-operation-form select,
+.add-operation-form input {
+    padding: 0.5rem 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: #fafbfc;
+    flex: 1 1 140px;
+    min-width: 100px;
+}
+
+.add-operation-form select:focus,
+.add-operation-form input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Кнопка "Добавить" – теперь фиолетовая */
+.add-operation-form button {
+    padding: 0.5rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: #6366f1;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.add-operation-form button:hover {
+    background: #4f46e5;
+}
+
+.add-operation-form button:active {
+    transform: scale(0.97);
+}
+
+/* ===== Фильтры ===== */
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.filter-bar select,
+.filter-bar input,
+.filter-bar button {
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 0.95rem;
+    background: #fafbfc;
+}
+
+.filter-bar button {
+    background: #6366f1;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.filter-bar button:hover {
+    background: #4f46e5;
+}
+
+.filter-bar button#resetFilterBtn {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.filter-bar button#resetFilterBtn:hover {
+    background: #cbd5e1;
+}
+
+/* ===== Таблица операций ===== */
+.operations-table-wrapper {
+    max-height: 40vh;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+    border: 1px solid #e9edf2;
+    border-radius: 12px;
+}
+
+#operationsTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+#operationsTable th {
+    background: #f1f5f9;
+    color: #1e293b;
+    padding: 0.7rem 1rem;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+#operationsTable td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid #e9edf2;
+}
+
+#operationsTable tbody tr:hover {
+    background: #f8fafc;
+}
+
+#noOperationsMessage {
+    text-align: center;
+    padding: 1.5rem 0;
+    margin: 0;
+}
+
+/* ===== Остальные общие стили ===== */
+form:not(.create-form-wrapper form):not(.add-operation-form form) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    width: 100%;
+}
+
+input, select {
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: #fafbfc;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    flex: 1 1 160px;
+    min-width: 120px;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    background: #fff;
+}
+
+button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balance-btn):not(.close-overlay-btn):not(.add-operation-form button):not(.filter-bar button) {
+    padding: 0.6rem 1.4rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: #6366f1;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balance-btn):not(.close-overlay-btn):not(.add-operation-form button):not(.filter-bar button):hover {
+    background: #4f46e5;
+}
+
+button:not(.page-btn):not(.cancel-btn):not(.create-toggle-btn):not(.total-balance-btn):not(.close-overlay-btn):not(.add-operation-form button):not(.filter-bar button):active {
+    transform: scale(0.97);
+}
+
+.empty {
+    color: #64748b;
+    font-style: italic;
+    padding: 1rem 0;
+}
+
+/* ===== Адаптивность ===== */
+@media (max-width: 600px) {
+    .card {
+        padding: 1.2rem;
+    }
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    .create-form-wrapper form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .create-form-wrapper input,
+    .create-form-wrapper select,
+    .create-form-wrapper button,
+    .cancel-btn {
+        width: 100%;
+    }
+    .tab-headers {
+        flex-direction: column;
+        border-bottom: none;
+        gap: 0.3rem;
+    }
+    .tab-label {
+        border-radius: 8px;
+    }
+    .wallet-display {
+        flex-direction: row;
+        gap: 0.4rem;
+    }
+    .page-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.4rem;
+    }
+    .wallet-grid {
+        grid-template-columns: 1fr;
+    }
+    .modal-content {
+        margin: 20% auto;
+        padding: 1.5rem;
+    }
+    .modal-total {
+        font-size: 1.8rem;
+    }
+    .overlay-content {
+        padding: 1rem;
+        max-height: 95vh;
+    }
+    .overlay-header h2 {
+        font-size: 1.2rem;
+    }
+    .detail-info {
+        flex-direction: column;
+        gap: 0.3rem;
+        padding: 0.8rem;
+    }
+    .add-operation-form form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .add-operation-form select,
+    .add-operation-form input,
+    .add-operation-form button {
+        width: 100%;
+    }
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-bar select,
+    .filter-bar input,
+    .filter-bar button {
+        width: 100%;
+    }
+    .operations-table-wrapper {
+        max-height: 30vh;
+    }
+    #operationsTable th,
+    #operationsTable td {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.85rem;
+    }
+}
